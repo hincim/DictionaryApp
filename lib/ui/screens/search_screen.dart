@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:deneme/bloc/dictionary_bloc.dart';
-import 'package:deneme/models/dictionary_model.dart';
+import 'package:deneme/bloc/theme_bloc.dart';
 import 'package:deneme/ui/widgets/definition_display.dart';
+import 'package:deneme/ui/widgets/definition_skeleton.dart';
+import 'package:deneme/ui/widgets/error_display.dart';
+import 'package:deneme/ui/widgets/word_of_the_day_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -13,6 +18,7 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final _controller = TextEditingController();
+  Timer? _debounce;
 
   void _submitWord(BuildContext context) {
     if (_controller.text.isNotEmpty) {
@@ -20,11 +26,36 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (query.isNotEmpty) {
+        context.read<DictionaryBloc>().add(SearchWord(query.trim()));
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Sözlük'),
+        actions: [
+          // Tema değiştirme butonu
+          BlocBuilder<ThemeBloc, ThemeState>(
+            builder: (context, state) {
+              return IconButton(
+                icon: Icon(state.themeMode == ThemeMode.dark
+                    ? Icons.light_mode
+                    : Icons.dark_mode),
+                tooltip: 'Temayı Değiştir',
+                onPressed: () {
+                  context.read<ThemeBloc>().add(ToggleTheme());
+                },
+              );
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -37,13 +68,14 @@ class _SearchScreenState extends State<SearchScreen> {
                 Expanded(
                   child: TextField(
                     controller: _controller,
+                    autofocus: true,
                     decoration: InputDecoration(
                       hintText: "Bir kelime arayın...",
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onSubmitted: (_) => _submitWord(context),
+                    onChanged: _onSearchChanged,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -64,23 +96,15 @@ class _SearchScreenState extends State<SearchScreen> {
               child: BlocBuilder<DictionaryBloc, DictionaryState>(
                 builder: (context, state) {
                   if (state is DictionaryInitial) {
-                    return const Center(
-                      child: Text(
-                        'Yukarıdan bir kelime arayarak başlayın.',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
-                    );
+                    return const WordOfTheDayCard();
                   }
                   if (state is DictionaryLoading) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const DefinitionSkeleton(); // Show shimmer effect
                   }
                   if (state is DictionaryError) {
-                    return Center(
-                      child: Text(
-                        'Hata: ${state.message}',
-                        style: const TextStyle(color: Colors.red, fontSize: 16),
-                        textAlign: TextAlign.center,
-                      ),
+                    return ErrorDisplay(
+                      message: state.message,
+                      onRetry: () => _submitWord(context),
                     );
                   }
                   if (state is DictionaryLoaded) {
@@ -99,6 +123,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void dispose() {
     _controller.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 }

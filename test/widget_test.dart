@@ -1,9 +1,8 @@
-// This is a basic Flutter widget test.
+// Bu dosya, temel bir Flutter widget testini içerir.
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Widget testleri, tek bir widget'ı test etmek için kullanılır. Test ortamında
+// widget'ın arayüzünü oluşturur, etkileşime girer (tıklama, kaydırma vb.)
+// ve widget ağacındaki değerlerin doğru olup olmadığını kontrol eder.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,20 +10,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:deneme/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+
+  // testWidgets, bir widget testi tanımlar.
+  testWidgets('Uygulama başlığını doğrula', (WidgetTester tester) async {
+    // MyApp widget'ını test ortamında oluşturur ve ilk frame'i çizer.
     await tester.pumpWidget(const MyApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Ekranda 'Sözlük' metnini içeren bir widget olup olmadığını kontrol eder.
+    // Bu test, uygulamanın ana AppBar başlığının doğru ayarlandığını doğrular.
+    expect(find.text('Sözlük'), findsOneWidget);
   });
+
 }
