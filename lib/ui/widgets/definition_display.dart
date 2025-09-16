@@ -3,20 +3,46 @@ import 'package:deneme/bloc/favorites_bloc.dart';
 import 'package:deneme/models/dictionary_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
-class DefinitionDisplay extends StatelessWidget {
+class DefinitionDisplay extends StatefulWidget {
   final DictionaryLoaded loadedState;
 
   const DefinitionDisplay({super.key, required this.loadedState});
+
+  @override
+  State<DefinitionDisplay> createState() => _DefinitionDisplayState();
+}
+
+class _DefinitionDisplayState extends State<DefinitionDisplay> {
+  late FlutterTts flutterTts;
+
+  @override
+  void initState() {
+    super.initState();
+    flutterTts = FlutterTts();
+    // Set language to US English for pronunciation
+    flutterTts.setLanguage("en-US");
+  }
+
+  @override
+  void dispose() {
+    flutterTts.stop();
+    super.dispose();
+  }
+
+  Future<void> _speak(String text) async {
+    await flutterTts.speak(text);
+  }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
     // Determine which definition to display based on the translation state
-    final definition = loadedState.isTranslated
-        ? loadedState.translatedDefinition!
-        : loadedState.definition;
+    final definition = widget.loadedState.isTranslated
+        ? widget.loadedState.translatedDefinition!
+        : widget.loadedState.definition;
 
     return Card(
       elevation: 4,
@@ -28,7 +54,7 @@ class DefinitionDisplay extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- HEADER: WORD, PHONETIC, ACTION BUTTONS ---
+              // --- HEADER: WORD, PHONETIC, FAVORITE BUTTON ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,54 +63,86 @@ class DefinitionDisplay extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(definition.word,
-                            style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-                        if (definition.phonetic != null)
-                          Text(
-                            definition.phonetic!,
-                            style: textTheme.bodyLarge?.copyWith(color: Colors.grey.shade600),
+                        InkWell(
+                          onTap: () {
+                            context
+                                .read<DictionaryBloc>()
+                                .add(const ToggleTranslation());
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4.0),
+                            child: Text(
+                              definition.word,
+                              style: textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: widget.loadedState.isTranslated
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
+                              ),
+                            ),
                           ),
+                        ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            if (definition.phonetic != null)
+                              Text(
+                                definition.phonetic!,
+                                style: textTheme.bodyLarge
+                                    ?.copyWith(color: Colors.grey.shade600),
+                              ),
+                            // Show speaker icon only for the original word
+                            if (!widget.loadedState.isTranslated)
+                              IconButton(
+                                padding: const EdgeInsets.only(left: 8.0),
+                                constraints: const BoxConstraints(),
+                                icon: Icon(Icons.volume_up,
+                                    color: Colors.grey.shade700, size: 22),
+                                onPressed: () =>
+                                    _speak(widget.loadedState.definition.word),
+                              ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
-                  // --- ACTION BUTTONS ---
-                  Row(
-                    children: [
-                      // Favorite Button
-                      BlocBuilder<FavoritesBloc, FavoritesState>(
-                        builder: (context, state) {
-                          bool isFavorite = false;
-                          if (state is FavoritesLoaded) {
-                            // Use the original word for checking favorite status
-                            isFavorite = state.favoriteWords.contains(loadedState.definition.word);
-                          }
-                          return IconButton(
-                            icon: Icon(
-                              isFavorite ? Icons.favorite : Icons.favorite_border,
-                              color: isFavorite ? Colors.red : Colors.grey,
-                              size: 28,
-                            ),
-                            onPressed: () {
-                              context.read<FavoritesBloc>().add(ToggleFavorite(loadedState.definition.word));
-                            },
-                          );
-                        },
-                      ),
-                      // Translate Button
-                      IconButton(
+                  // --- FAVORITE BUTTON ---
+                  BlocBuilder<FavoritesBloc, FavoritesState>(
+                    builder: (context, state) {
+                      bool isFavorite = false;
+                      if (state is FavoritesLoaded) {
+                        isFavorite = state.favoriteWords
+                            .contains(widget.loadedState.definition.word);
+                      }
+                      return IconButton(
                         icon: Icon(
-                          Icons.translate,
-                          color: loadedState.isTranslated
-                              ? Theme.of(context).colorScheme.primary
-                              : Colors.grey,
+                          isFavorite ? Icons.favorite : Icons.favorite_border,
+                          color: isFavorite ? Colors.red : Colors.grey,
                           size: 28,
                         ),
                         onPressed: () {
-                          context.read<DictionaryBloc>().add(const ToggleTranslation());
+                          context.read<FavoritesBloc>().add(ToggleFavorite(
+                              widget.loadedState.definition.word));
                         },
-                      ),
-                    ],
-                  )
+                      );
+                    },
+                  ),
+
+                  // Translate Button
+                  IconButton(
+                    icon: Icon(
+                      Icons.translate,
+                      color: widget.loadedState.isTranslated
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.grey,
+                      size: 28,
+                    ),
+                    onPressed: () {
+                      context
+                          .read<DictionaryBloc>()
+                          .add(const ToggleTranslation());
+                    },
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -103,7 +161,8 @@ class DefinitionDisplay extends StatelessWidget {
                       // Part of Speech
                       Chip(
                         label: Text(meaning.partOfSpeech),
-                        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                        backgroundColor:
+                            Theme.of(context).colorScheme.primaryContainer,
                       ),
                       const SizedBox(height: 12),
 
@@ -118,19 +177,25 @@ class DefinitionDisplay extends StatelessWidget {
                             children: [
                               Text(
                                 '${idx + 1}. ',
-                                style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+                                style: textTheme.bodyLarge
+                                    ?.copyWith(fontWeight: FontWeight.bold),
                               ),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(def.definition, style: textTheme.bodyLarge),
-                                    if (def.example != null && def.example!.isNotEmpty)
+                                    Text(def.definition,
+                                        style: textTheme.bodyLarge),
+                                    if (def.example != null &&
+                                        def.example!.isNotEmpty)
                                       Padding(
-                                        padding: const EdgeInsets.only(top: 4.0),
+                                        padding:
+                                            const EdgeInsets.only(top: 4.0),
                                         child: Text(
                                           '"${def.example!}"',
-                                          style: textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700, fontStyle: FontStyle.italic),
+                                          style: textTheme.bodyMedium?.copyWith(
+                                              color: Colors.grey.shade700,
+                                              fontStyle: FontStyle.italic),
                                         ),
                                       ),
                                   ],
