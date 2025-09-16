@@ -41,6 +41,17 @@ class LocalStorageRepository {
     await _historyBox.clear();
   }
 
+  Future<void> removeWordFromHistory(String word) async {
+    // Find the key of the item to delete
+    final itemKey = _historyBox.keys.firstWhere(
+      (key) => _historyBox.get(key)!.word == word,
+      // orElse: () => null, // Using a cast to avoid type issues
+    );
+    if (itemKey != null) {
+      await _historyBox.delete(itemKey);
+    }
+  }
+
   // --- Favorites Methods ---
   bool isFavorite(String word) {
     return _favoritesBox.values.any((item) => item.word == word);

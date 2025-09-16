@@ -52,8 +52,16 @@ class HistoryScreen extends StatelessWidget {
                 return ListTile(
                   title: Text(item.word),
                   subtitle: Text(item.timestamp.toString().substring(0, 16)),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.grey),
+                    tooltip: 'Geçmişten Sil',
+                    onPressed: () {
+                      // Tek bir kelimeyi silmek için BLoC'a event gönderir.
+                      context.read<HistoryBloc>().add(RemoveWordFromHistory(item.word));
+                    },
+                  ),
                   onTap: () {
-                    // Notify the parent (HomeScreen) to handle the search and navigation
+                    // Kelimeye tıklandığında arama yapmak için ana ekrana bilgi verir.
                     onWordTapped(item.word);
                   },
                 );
