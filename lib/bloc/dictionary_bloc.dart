@@ -17,6 +17,7 @@ class DictionaryBloc extends Bloc<DictionaryEvent, DictionaryState> {
     this._localStorageRepository,
   ) : super(DictionaryInitial()) {
     on<SearchWord>(_onSearchWord);
+    on<ToggleTranslation>(_onToggleTranslation);
   }
 
   void _onSearchWord(SearchWord event, Emitter<DictionaryState> emit) async {
@@ -32,5 +33,33 @@ class DictionaryBloc extends Bloc<DictionaryEvent, DictionaryState> {
       // For any other unexpected errors
       emit(const DictionaryError('Beklenmedik bir hata oluştu.'));
     }
+  }
+
+  void _onToggleTranslation(
+      ToggleTranslation event, Emitter<DictionaryState> emit) async {
+    final currentState = state;
+    if (currentState is DictionaryLoaded) {
+      // If translation already exists, just toggle the view
+      if (currentState.translatedDefinition != null) {
+        emit(currentState.copyWith(isTranslated: !currentState.isTranslated));
+        return;
+      }
+
+      // If translating for the first time
+      try {
+        // No separate loading state to avoid UI jump, translation is fast
+        final translatedDefinition = await _dictionaryRepository
+            .translateDefinition(currentState.definition);
+        emit(currentState.copyWith(
+          translatedDefinition: translatedDefinition,
+          isTranslated: true,
+        ));
+      } on DictionaryException catch (e) {
+        emit(DictionaryError(e.message));
+      } catch (e) {
+        emit(const DictionaryError('Çeviri sırasında beklenmedik bir hata oluştu.'));
+      }
+    }
+    // If the state is not DictionaryLoaded, do nothing.
   }
 }

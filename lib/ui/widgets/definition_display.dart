@@ -1,16 +1,22 @@
+import 'package:deneme/bloc/dictionary_bloc.dart';
 import 'package:deneme/bloc/favorites_bloc.dart';
 import 'package:deneme/models/dictionary_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class DefinitionDisplay extends StatelessWidget {
-  final WordDefinition definition;
+  final DictionaryLoaded loadedState;
 
-  const DefinitionDisplay({super.key, required this.definition});
+  const DefinitionDisplay({super.key, required this.loadedState});
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+
+    // Determine which definition to display based on the translation state
+    final definition = loadedState.isTranslated
+        ? loadedState.translatedDefinition!
+        : loadedState.definition;
 
     return Card(
       elevation: 4,
@@ -22,7 +28,7 @@ class DefinitionDisplay extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- HEADER: WORD, PHONETIC, FAVORITE BUTTON ---
+              // --- HEADER: WORD, PHONETIC, ACTION BUTTONS ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -31,7 +37,8 @@ class DefinitionDisplay extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(definition.word, style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                        Text(definition.word,
+                            style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
                         if (definition.phonetic != null)
                           Text(
                             definition.phonetic!,
@@ -40,24 +47,44 @@ class DefinitionDisplay extends StatelessWidget {
                       ],
                     ),
                   ),
-                  BlocBuilder<FavoritesBloc, FavoritesState>(
-                    builder: (context, state) {
-                      bool isFavorite = false;
-                      if (state is FavoritesLoaded) {
-                        isFavorite = state.favoriteWords.contains(definition.word);
-                      }
-                      return IconButton(
+                  // --- ACTION BUTTONS ---
+                  Row(
+                    children: [
+                      // Favorite Button
+                      BlocBuilder<FavoritesBloc, FavoritesState>(
+                        builder: (context, state) {
+                          bool isFavorite = false;
+                          if (state is FavoritesLoaded) {
+                            // Use the original word for checking favorite status
+                            isFavorite = state.favoriteWords.contains(loadedState.definition.word);
+                          }
+                          return IconButton(
+                            icon: Icon(
+                              isFavorite ? Icons.favorite : Icons.favorite_border,
+                              color: isFavorite ? Colors.red : Colors.grey,
+                              size: 28,
+                            ),
+                            onPressed: () {
+                              context.read<FavoritesBloc>().add(ToggleFavorite(loadedState.definition.word));
+                            },
+                          );
+                        },
+                      ),
+                      // Translate Button
+                      IconButton(
                         icon: Icon(
-                          isFavorite ? Icons.favorite : Icons.favorite_border,
-                          color: isFavorite ? Colors.red : Colors.grey,
+                          Icons.translate,
+                          color: loadedState.isTranslated
+                              ? Theme.of(context).colorScheme.primary
+                              : Colors.grey,
                           size: 28,
                         ),
                         onPressed: () {
-                          context.read<FavoritesBloc>().add(ToggleFavorite(definition.word));
+                          context.read<DictionaryBloc>().add(const ToggleTranslation());
                         },
-                      );
-                    },
-                  ),
+                      ),
+                    ],
+                  )
                 ],
               ),
               const SizedBox(height: 16),

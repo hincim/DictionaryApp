@@ -15,3 +15,7 @@ class SearchWord extends DictionaryEvent {
   @override
   List<Object> get props => [word];
 }
+
+class ToggleTranslation extends DictionaryEvent {
+  const ToggleTranslation();
+}

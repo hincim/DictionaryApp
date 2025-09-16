@@ -11,10 +11,9 @@ class FavoritesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Favori Kelimeler'),
-      ),
+      appBar: AppBar(title: const Text('Favori Kelimeler')),
       body: BlocBuilder<FavoritesBloc, FavoritesState>(
+        //Bu widget, FavoritesBloc tarafından yayınlanan FavoritesState akışını dinler ve state değiştikçe build eder.
         builder: (context, state) {
           if (state is FavoritesLoading) {
             return const Center(child: CircularProgressIndicator());
@@ -44,10 +43,14 @@ class FavoritesScreen extends StatelessWidget {
                   key: Key(item.word), // Unique key for the item
                   direction: DismissDirection.endToStart,
                   onDismissed: (_) {
-                    context.read<FavoritesBloc>().add(ToggleFavorite(item.word));
+                    context.read<FavoritesBloc>().add(
+                      ToggleFavorite(item.word),
+                    );
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('"${item.word}" favorilerden kaldırıldı.'),
+                        content: Text(
+                          '"${item.word}" favorilerden kaldırıldı.',
+                        ),
                         duration: const Duration(seconds: 2),
                       ),
                     );

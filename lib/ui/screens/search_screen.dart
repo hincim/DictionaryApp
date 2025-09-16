@@ -84,7 +84,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     );
                   }
                   if (state is DictionaryLoaded) {
-                    return DefinitionDisplay(definition: state.definition);
+                    return DefinitionDisplay(loadedState: state);
                   }
                   return const SizedBox.shrink(); // Should not happen
                 },
