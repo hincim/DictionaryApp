@@ -4,10 +4,12 @@ import '../models/hive_models.dart';
 class LocalStorageRepository {
   static const String _historyBoxName = 'history';
   static const String _favoritesBoxName = 'favorites';
+  static const String _settingsBoxName = 'settings';
 
   // --- Box Getters ---
   Box<HistoryItem> get _historyBox => Hive.box<HistoryItem>(_historyBoxName);
   Box<FavoriteItem> get _favoritesBox => Hive.box<FavoriteItem>(_favoritesBoxName);
+  Box get _settingsBox => Hive.box(_settingsBoxName);
 
   // --- Initialization ---
   static Future<void> init() async {
@@ -18,6 +20,16 @@ class LocalStorageRepository {
     // Open Boxes
     await Hive.openBox<HistoryItem>(_historyBoxName);
     await Hive.openBox<FavoriteItem>(_favoritesBoxName);
+    await Hive.openBox(_settingsBoxName);
+  }
+
+  // --- Theme Methods ---
+  Future<void> saveTheme({required bool isDarkMode}) async {
+    await _settingsBox.put('isDarkMode', isDarkMode);
+  }
+
+  bool isDarkMode() {
+    return _settingsBox.get('isDarkMode', defaultValue: false) as bool;
   }
 
   // --- History Methods ---
@@ -39,6 +51,17 @@ class LocalStorageRepository {
 
   Future<void> clearHistory() async {
     await _historyBox.clear();
+  }
+
+  Future<void> removeWordFromHistory(String word) async {
+    // Find the key of the item to delete
+    final itemKey = _historyBox.keys.firstWhere(
+      (key) => _historyBox.get(key)!.word == word,
+      // orElse: () => null, // Using a cast to avoid type issues
+    );
+    if (itemKey != null) {
+      await _historyBox.delete(itemKey);
+    }
   }
 
   // --- Favorites Methods ---

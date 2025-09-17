@@ -1,7 +1,8 @@
-import 'package:deneme/bloc/dictionary_bloc.dart';
 import 'package:deneme/bloc/history_bloc.dart';
+import 'package:deneme/ui/widgets/error_display.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 
 class HistoryScreen extends StatelessWidget {
   final ValueChanged<String> onWordTapped;
@@ -20,7 +21,7 @@ class HistoryScreen extends StatelessWidget {
             onPressed: () {
               context.read<HistoryBloc>().add(ClearHistory());
             },
-          )
+          ),
         ],
       ),
       body: BlocBuilder<HistoryBloc, HistoryState>(
@@ -37,11 +38,9 @@ class HistoryScreen extends StatelessWidget {
             );
           }
           if (state is HistoryError) {
-            return Center(
-              child: Text(
-                'Hata: ${state.message}',
-                style: const TextStyle(color: Colors.red, fontSize: 16),
-              ),
+            return ErrorDisplay(
+              message: state.message,
+              onRetry: () => context.read<HistoryBloc>().add(LoadHistory()),
             );
           }
           if (state is HistoryLoaded) {
@@ -49,13 +48,41 @@ class HistoryScreen extends StatelessWidget {
               itemCount: state.history.length,
               itemBuilder: (context, index) {
                 final item = state.history[index];
-                return ListTile(
-                  title: Text(item.word),
-                  subtitle: Text(item.timestamp.toString().substring(0, 16)),
-                  onTap: () {
-                    // Notify the parent (HomeScreen) to handle the search and navigation
-                    onWordTapped(item.word);
+
+                return Dismissible(
+                  key: ValueKey(
+                    item.word + item.timestamp.toString(),
+                  ), // Unique key
+                  direction: DismissDirection.endToStart,
+                  onDismissed: (_) {
+                    // Dispatch event to remove from history
+                    context.read<HistoryBloc>().add(
+                      RemoveWordFromHistory(item.word),
+                    );
+                    // Show a confirmation snackbar
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('"${item.word}" geçmişten silindi.'),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
                   },
+                  background: Container(
+                    color: Colors.red,
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: const Icon(Icons.delete, color: Colors.white),
+                  ),
+                  child: ListTile(
+                    title: Text(item.word),
+                    subtitle: Text(
+                      DateFormat('dd.MM.yyyy HH:mm').format(item.timestamp),
+                    ),
+                    onTap: () {
+                      // Kelimeye tıklandığında arama yapmak için ana ekrana bilgi verir.
+                      onWordTapped(item.word);
+                    },
+                  ),
                 );
               },
             );

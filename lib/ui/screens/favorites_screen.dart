@@ -1,5 +1,5 @@
-import 'package:deneme/bloc/dictionary_bloc.dart';
 import 'package:deneme/bloc/favorites_bloc.dart';
+import 'package:deneme/ui/widgets/error_display.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -27,11 +27,9 @@ class FavoritesScreen extends StatelessWidget {
             );
           }
           if (state is FavoritesError) {
-            return Center(
-              child: Text(
-                'Hata: ${state.message}',
-                style: const TextStyle(color: Colors.red, fontSize: 16),
-              ),
+            return ErrorDisplay(
+              message: state.message,
+              onRetry: () => context.read<FavoritesBloc>().add(LoadFavorites()),
             );
           }
           if (state is FavoritesLoaded) {
