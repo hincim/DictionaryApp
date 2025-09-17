@@ -1,6 +1,8 @@
 import 'package:deneme/bloc/dictionary_bloc.dart';
 import 'package:deneme/bloc/favorites_bloc.dart';
 import 'package:deneme/bloc/history_bloc.dart';
+import 'package:deneme/bloc/theme_bloc.dart';
+import 'package:deneme/bloc/word_of_the_day_bloc.dart';
 import 'package:deneme/repositories/dictionary_repository.dart';
 import 'package:deneme/repositories/local_storage_repository.dart';
 import 'package:deneme/ui/screens/home_screen.dart';
@@ -43,6 +45,18 @@ class MyApp extends StatelessWidget {
       // widget ağacına sağlar.
       child: MultiBlocProvider(
         providers: [
+          // Tema durumunu yönetir.
+          BlocProvider<ThemeBloc>(
+            create: (context) =>
+                ThemeBloc(context.read<LocalStorageRepository>())
+                  ..add(LoadTheme()), // Kayıtlı temayı yükle.
+          ),
+          // Günün kelimesini yönetir.
+          BlocProvider<WordOfTheDayBloc>(
+            create: (context) =>
+                WordOfTheDayBloc(context.read<DictionaryRepository>())
+                  ..add(FetchWordOfTheDay()), // Günün kelimesini yükle.
+          ),
           // Kelime arama işleminin state'ini yönetir.
           BlocProvider<DictionaryBloc>(
             create: (context) => DictionaryBloc(
@@ -52,29 +66,44 @@ class MyApp extends StatelessWidget {
           ),
           // Arama geçmişinin state'ini yönetir.
           BlocProvider<HistoryBloc>(
-            create: (context) => HistoryBloc(
-              context.read<LocalStorageRepository>(),
-            )..add(LoadHistory()), // Başlangıçta geçmişi yükler.
+            create: (context) =>
+                HistoryBloc(context.read<LocalStorageRepository>())
+                  ..add(LoadHistory()), // Başlangıçta geçmişi yükler.
           ),
           // Favori kelimelerin state'ini yönetir.
           BlocProvider<FavoritesBloc>(
-            create: (context) => FavoritesBloc(
-              context.read<LocalStorageRepository>(),
-            )..add(LoadFavorites()), // Başlangıçta favorileri yükler.
+            create: (context) =>
+                FavoritesBloc(context.read<LocalStorageRepository>())
+                  ..add(LoadFavorites()), // Başlangıçta favorileri yükler.
           ),
         ],
-        child: MaterialApp(
-          title: 'Sözlük',
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
-            useMaterial3: true,
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Colors.teal,
-              foregroundColor: Colors.white,
-            )
-          ),
-          debugShowCheckedModeBanner: false,
-          home: const HomeScreen(),
+        child: BlocBuilder<ThemeBloc, ThemeState>(
+          builder: (context, themeState) {
+            return MaterialApp(
+              title: 'Sözlük',
+              themeMode: themeState.themeMode,
+              theme: ThemeData(
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: Colors.teal,
+                  brightness: Brightness.light,
+                ),
+                useMaterial3: true,
+                appBarTheme: const AppBarTheme(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+              darkTheme: ThemeData(
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: Colors.teal,
+                  brightness: Brightness.dark,
+                ),
+                useMaterial3: true,
+              ),
+              debugShowCheckedModeBanner: false,
+              home: const HomeScreen(),
+            );
+          },
         ),
       ),
     );
