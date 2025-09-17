@@ -26,14 +26,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  void _onSearchChanged(String query) {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () {
-      if (query.isNotEmpty) {
-        context.read<DictionaryBloc>().add(SearchWord(query.trim()));
-      }
-    });
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +68,6 @@ class _SearchScreenState extends State<SearchScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onChanged: _onSearchChanged,
                   ),
                 ),
                 const SizedBox(width: 8),
